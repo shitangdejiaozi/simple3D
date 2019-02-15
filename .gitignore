@@ -1,3 +1,16 @@
 #vsfile
 .suo
 .vs/
+
+# Executables
+*.exe
+*.ilk
+*.pdb
+*.idb
+
+#Log
+simple3d-master.tlog/
+*.log
+
+# Object files
+*.obj
