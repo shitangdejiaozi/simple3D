@@ -14,23 +14,6 @@ typedef struct
 	MATRIX4X4 mvp;
 } transform_t;
 
-typedef struct Device_TYP
-{
-	transform_t transform; //坐标变换器
-	int width;
-	int height;
-	IUINT32 * framebuffer;
-	float * zbuffer;
-	int tex_width;
-	int tex_height;
-	float max_u;
-	float max_v;
-	int render_state;
-	IUINT32 background;
-	IUINT32 foreground;
-	CAMERA camera;
-} device_t;
-
 typedef struct CAMERA_TYP
 {
 	int state; //相机状态
@@ -53,12 +36,31 @@ typedef struct CAMERA_TYP
 
 }CAMERA, *CAMERA_PTR;
 
-void Device_Init(device_t * device, IUINT32 color, IUINT32 * framebuffer, float * zbuffer, int render_state);
+typedef struct Device_TYP
+{
+	transform_t transform; //坐标变换器
+	int width;
+	int height;
+	IUINT32 * framebuffer;
+	float * zbuffer;
+	int tex_width;
+	int tex_height;
+	float max_u;
+	float max_v;
+	int render_state;
+	IUINT32 background;
+	IUINT32 foreground;
+	CAMERA camera;
+} device_t;
+
+
+
+void Device_Init(device_t * device, int width, int height, IUINT32 color, IUINT32 * framebuffer, float * zbuffer, int render_state);
 void Device_Set_RenderState(device_t * device, int reander_state);
 
 //基本的渲染函数
-void Device_Draw_Pixel(device_t * device, int x, int y, int color);
-void Device_Draw_Line(device_t * device, int x0, int y0, int x1, int y1, int color);
+void Device_Draw_Pixel(device_t * device, int x, int y, IUINT32 color);
+void Device_Draw_Line(device_t * device, int x0, int y0, int x1, int y1, IUINT32 color);
 
 #endif // DEVICE
 

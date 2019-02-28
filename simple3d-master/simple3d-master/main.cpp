@@ -40,9 +40,11 @@ int main(int argc, char *argv[])
 	//初始化render color
 	SDL_SetRenderDrawColor(Renderer, 0xFF, 0xFF, 0xFF, 0xFF); 
 
+	device_t device;
 	//缓存
 	IUINT32 * framebuffer = (IUINT32 *)malloc(SCREEN_WIDHT * SCREEN_HEIGHT * sizeof(IUINT32));
 	float * zbuffer = (float *)malloc(SCREEN_WIDHT * SCREEN_HEIGHT * sizeof(float));
+	Device_Init(&device, SCREEN_WIDHT, SCREEN_HEIGHT, 0x55555555, framebuffer, zbuffer, RENDER_STATE_WIREFARME);
 
 	while (1)
 	{
@@ -59,14 +61,17 @@ int main(int argc, char *argv[])
 		SDL_SetRenderDrawColor(Renderer, 0xFF, 0xFF, 0xFF, 0xFF);
 		SDL_RenderClear(Renderer);
 
+		Device_Draw_Line(&device, 0, 0, 200, 200, 0x123457);
+		
 		//根据framebuffer填充rendercolor
 		for (int y = 0; y < SCREEN_HEIGHT; y++)
 		{
 			for (int x = 0; x < SCREEN_WIDHT; x++)
 			{
-				SDL_SetRenderDrawColor(Renderer, 0xff, 0, 0, 0xff);
-				//SDL_RenderDrawPoint(Renderer, x, y);
-				SDL_RenderDrawLine(Renderer, 0, 0, 200, 200);
+				IUINT32 color = framebuffer[y * SCREEN_WIDHT + x];
+				SDL_SetRenderDrawColor(Renderer, (0xff << 16 & color) >> 16, (0xff << 8 & color) >> 8, 0xff & color, (0xff << 24 & color) >> 24);
+				SDL_RenderDrawPoint(Renderer, x, y);
+				//SDL_RenderDrawLine(Renderer, 0, 0, 200, 200);
 			}
 		}
 		//更新屏幕
