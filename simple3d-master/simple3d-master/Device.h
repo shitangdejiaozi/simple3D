@@ -5,6 +5,10 @@
 #define RENDER_STATE_TEXTURE    2
 #define RENDER_STATE_COLOR      4
 
+#define RENDERLIST_MAX_POLYS 32768
+#define POLY_STATE_ACTIVE             0x0001
+#define POLY_STATE_CLIPPED            0x0002
+#define POLY_STATE_BACKFACE           0x0004
 
 typedef struct
 {
@@ -51,17 +55,55 @@ typedef struct Device_TYP
 	IUINT32 background;
 	IUINT32 foreground;
 	CAMERA camera;
-} device_t;
+} device_t, * device_PTR;
+
+typedef struct POLY_TYP
+{
+	int state;
+	int attr;
+	int color;
+	POINT4D_PTR vertex_list;//顶点列表
+	int vert[3];            //顶点索引
+}POLY, *POLY_PTR;
+
+//在光栅化阶段需要自包含的多边形面结构，不依赖于外部的顶点列表，自带顶点数据
+typedef struct POLYF_TYP
+{
+	int state;
+	int attr;
+	int color;
+
+	POINT4D vlist[3]; //原始的顶点数据
+	POINT4D tvlist[3]; //变换后的顶点
+}POLYF, *POLYF_PTR;
+
+//多边形列表，
+typedef struct RENDERLIST_TYP
+{
+	int state;
+	int attr;
+
+	POLYF_PTR poly_ptrs[RENDERLIST_MAX_POLYS]; //索引列表
+	POLYF poly_data[RENDERLIST_MAX_POLYS];     //数据列表
+	int num_polys; //多边形数
+
+}RENDERLIST, *RENDERLIST_PTR;
 
 
-
-void Device_Init(device_t * device, int width, int height, IUINT32 color, IUINT32 * framebuffer, float * zbuffer, int render_state);
-void Device_Set_RenderState(device_t * device, int reander_state);
-
+void Device_Init(device_PTR device, int width, int height, IUINT32 color, IUINT32 * framebuffer, float * zbuffer, int render_state);
+void Device_Set_RenderState(device_PTR device, int reander_state);
+void Device_Clear(device_PTR device);
 //基本的渲染函数
-void Device_Draw_Pixel(device_t * device, int x, int y, IUINT32 color);
-void Device_Draw_Line(device_t * device, int x0, int y0, int x1, int y1, IUINT32 color);
+void Device_Draw_Pixel(device_PTR device, int x, int y, IUINT32 color);
+void Device_Draw_Line(device_PTR device, int x0, int y0, int x1, int y1, IUINT32 color);
 
+
+void Reset_RENDERLIST(RENDERLIST_PTR  render_list);
+int Insert_POLYF_RENDERLIST(RENDERLIST_PTR render_list, POLYF_PTR poly);
+void Transform_RENDERLIST(RENDERLIST_PTR render_list, MATRIX4X4_PTR mt);
+
+//坐标变换
+void Build_Model_To_World_Matrix4X4(VECTOR3D_PTR vpos, MATRIX4X4_PTR mt);
 #endif // DEVICE
 
 
