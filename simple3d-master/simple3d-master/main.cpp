@@ -2,12 +2,46 @@
 #include <iostream>
 #include "BasicMath.h"
 #include "Device.h"
+using namespace std;
 
 #define WINDOW_TITLE "sample3D"
 const int SCREEN_WIDHT = 640;
 const int SCREEN_HEIGHT = 480;
 
+bool isViewdist_normalize = false;  //视距是否为1，视平面是否归一化
+bool isMergePs = true;   //是否合并透视和屏幕变换
+CAMERA camera;
+RENDERLIST rend_list;
+POINT4D cam_pos = { 0, 0, -100, 1 };
+VECTOR4D cam_dir = { 0, 0, 0, 1 };
+POLYF poly1;
+POINT3D poly_pos = { 0, 0, 100};
 
+void GameInit()
+{
+	poly1.state = POLY_STATE_ACTIVE;
+	poly1.attr = 0;
+	poly1.color = RGB32BIT(0, 0, 255, 255);
+
+	poly1.vlist[0].x = 0;
+	poly1.vlist[0].y = 50;
+	poly1.vlist[0].z = 0;
+	poly1.vlist[0].w = 1;
+
+	poly1.vlist[1].x = 50;
+	poly1.vlist[1].y = -50;
+	poly1.vlist[1].z = 0;
+	poly1.vlist[1].w = 1;
+
+	poly1.vlist[2].x = -50;
+	poly1.vlist[2].y = -50;
+	poly1.vlist[2].z = 0;
+	poly1.vlist[2].w = 1;
+
+	Init_Camera(&camera, 0, &cam_pos, &cam_dir, NULL, 50.0, 100.0, 90, SCREEN_WIDHT, SCREEN_HEIGHT, isViewdist_normalize);
+
+
+}
 
 int main(int argc, char *argv[])
 {
@@ -45,7 +79,7 @@ int main(int argc, char *argv[])
 	IUINT32 * framebuffer = (IUINT32 *)malloc(SCREEN_WIDHT * SCREEN_HEIGHT * sizeof(IUINT32));
 	float * zbuffer = (float *)malloc(SCREEN_WIDHT * SCREEN_HEIGHT * sizeof(float));
 	Device_Init(&device, SCREEN_WIDHT, SCREEN_HEIGHT, 0x55555555, framebuffer, zbuffer, RENDER_STATE_WIREFARME);
-
+	GameInit();
 	while (1)
 	{
 		SDL_Event e;
@@ -60,9 +94,45 @@ int main(int argc, char *argv[])
 		//清空屏幕
 		SDL_SetRenderDrawColor(Renderer, 0xFF, 0xFF, 0xFF, 0xFF);
 		SDL_RenderClear(Renderer);
+		Device_Clear(&device);
 
-		Device_Draw_Line(&device, 0, 0, 200, 200, 0x123457);
+		//Device_Draw_Line(&device, 0, 0, 200, 200, 0x123457);
+		Reset_RENDERLIST(&rend_list);
+		Insert_POLYF_RENDERLIST(&rend_list, &poly1);
+		MATRIX4X4 mt;
+		cout << "model to world" << endl;
+		Build_Model_To_World_Matrix4X4(&poly_pos, &mt);
+		Transform_RENDERLIST(&rend_list, &mt, TRANSFORM_LOCAL_TO_TRANS);
+
+		cout << "world to camera" << endl;
+		Build_World_To_Camera_Matrix_Euler(&camera);
+		Transform_RENDERLIST(&rend_list, &camera.view, TRANSFORM_TRANS_ONLY);
+		cout << "camera to screen" << endl;
+		if (isViewdist_normalize)
+		{
+			Camera_To_Perspective_Renderlist(&rend_list, &camera); //视距为1， fov =90，默认使用分开的计算，如果为其他情况，用合并格式
+			Perspective_To_Screen_Renderlist(&rend_list, &camera);
+		}
+		else
+		{
+			if (isMergePs)
+			{
+				Camera_To_Screen_Renderlist(&rend_list, &camera); 
+			}
+			else
+			{
+				Build_Camera_To_Screen_Matrix(&camera);
+				Transform_RENDERLIST(&rend_list, &camera.ps, TRANSFORM_TRANS_ONLY);
+
+				Convert_From_Homogeneous4D_Renderlist(&rend_list);
+			}
+			
+			
+		}
 		
+		
+		Draw_Renderlist_Wire(&rend_list, &device);
+
 		//根据framebuffer填充rendercolor
 		for (int y = 0; y < SCREEN_HEIGHT; y++)
 		{
