@@ -125,6 +125,7 @@
     <ClCompile Include="BasicMath.cpp" />
     <ClCompile Include="Device.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="WireCube.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BasicMath.h" />

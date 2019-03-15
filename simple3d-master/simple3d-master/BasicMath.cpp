@@ -5,7 +5,7 @@ void Mat_Mul_VECTOR4D_4X4(VECTOR4D_PTR va, MATRIX4X4_PTR mb, VECTOR4D_PTR result
 {
 	for (int col = 0; col < 4; col++)
 	{
-		int sum = 0;
+		float sum = 0;
 		for (int row = 0; row < 4; row++)
 		{
 			sum += (va->M[row] * mb->M[row][col]);
@@ -32,7 +32,7 @@ void Mat_Mul_4X4(MATRIX4X4_PTR ma, MATRIX4X4_PTR  mb, MATRIX4X4_PTR result)
 	{
 		for (int col = 0; col < 4; col++)
 		{
-			int sum = 0;
+			float sum = 0;
 
 			for (int i = 0; i < 4; i++)
 			{

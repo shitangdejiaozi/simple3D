@@ -105,10 +105,70 @@ int Insert_POLYF_RENDERLIST(RENDERLIST_PTR render_list, POLYF_PTR poly)
 	return 1;
 }
 
+int Insert_POLY_RENDERLIST(RENDERLIST_PTR render_list, POLY_PTR poly)
+{
+	if (render_list->num_polys == RENDERLIST_MAX_POLYS)
+		return 0;
+
+	int num = render_list->num_polys;
+	render_list->poly_ptrs[num] = &render_list->poly_data[num];
+
+	render_list->poly_data[num].state = poly->state;
+	render_list->poly_data[num].attr = poly->attr;
+	render_list->poly_data[num].color = poly->color;
+
+	Vector4D_Copy(&render_list->poly_data[num].tvlist[0], &poly->vertex_list[poly->vert[0]]);
+	Vector4D_Copy(&render_list->poly_data[num].tvlist[1], &poly->vertex_list[poly->vert[1]]);
+	Vector4D_Copy(&render_list->poly_data[num].tvlist[2], &poly->vertex_list[poly->vert[2]]);
+
+	Vector4D_Copy(&render_list->poly_data[num].vlist[0], &poly->vertex_list[poly->vert[0]]);
+	Vector4D_Copy(&render_list->poly_data[num].vlist[1], &poly->vertex_list[poly->vert[1]]);
+	Vector4D_Copy(&render_list->poly_data[num].vlist[2], &poly->vertex_list[poly->vert[2]]);
+
+	render_list->num_polys++;
+	return 1;
+}
+
+//物体插入到渲染列表
+int Insert_OBJECT_RENDERLIST(RENDERLIST_PTR render_list, OBJECT_PTR obj, bool insert_local)
+{
+	if (!(obj->state & OBJECT_STATE_ACTIVE) ||
+		(obj->state & OBJECT_STATE_CULLED) ||
+		!(obj->state & OBJECT_STATE_VISIBLE))
+		return(0);
+
+	for (int poly = 0; poly < obj->num_polys; poly++)
+	{
+		POLY_PTR curr_poly = &obj->plist[poly];
+
+		if (!(curr_poly->state & POLY_STATE_ACTIVE) ||
+			(curr_poly->state & POLY_STATE_CLIPPED) ||
+			(curr_poly->state & POLY_STATE_BACKFACE))
+			continue; // move onto next poly
+
+		POINT4D_PTR vlist_old = curr_poly->vertex_list;
+		if (insert_local)
+		{
+			curr_poly->vertex_list = obj->vlist_local; //多边形的顶点列表是局部的
+		}
+		else
+		{
+			curr_poly->vertex_list = obj->vlist_trans; //多边形的顶点列表是变换后的
+		}
+
+		Insert_POLY_RENDERLIST(render_list, curr_poly);
+
+		curr_poly->vertex_list = vlist_old;
+
+	}
+	return 1;
+}
+
 void PrintPoint(POINT4D point)
 {
 	cout << point.x << ":" << point.y << ":" << point.z   << ":" << point.w << endl;
 }
+
 //通用的渲染列表 变换函数
 void Transform_RENDERLIST(RENDERLIST_PTR render_list, MATRIX4X4_PTR mt, int coord_select)
 {
@@ -201,9 +261,6 @@ void Init_Camera(CAMERA_PTR cam, int cam_attr, POINT4D_PTR cam_pos, VECTOR4D_PTR
 		cam->viewplane_height = viewport_height;  //视平面于屏幕大小一样,这个时候，使用合并形式的透视和屏幕变换
 	}
 	
-
-	
-
 	float tan_fov_div2 = tan(DEG_TO_RAD(fov / 2));
 	cam->view_dist = 0.5 * cam->viewplane_width * tan_fov_div2; //如果fov= 90， 按照视平面归一化，d = 1
 
@@ -228,6 +285,10 @@ void Build_World_To_Camera_Matrix_Euler(CAMERA_PTR cam)
 	float theta_x = cam->dir.x;
 	float theta_y = cam->dir.y;
 	float theta_z = cam->dir.z;
+
+	theta_x = DEG_TO_RAD(theta_x);
+	theta_y = DEG_TO_RAD(theta_y);
+	theta_z = DEG_TO_RAD(theta_z);
 
 	float cos_theta = cos(theta_x);
 	float sin_theta = -sin(theta_x);
@@ -427,6 +488,126 @@ void Draw_Renderlist_Wire(RENDERLIST_PTR render_list, device_PTR device)
 
 	}
 }
+
+void Build_XYZ_Rotation_Matrix(float a, float b, float c, MATRIX4X4_PTR mt)
+{
+	/*a = DEG_TO_RAD(a);
+	b = DEG_TO_RAD(b);*/
+
+	MATRIX4X4 mx, my, mz, mtmp;
+	//int seq = 0;
+	//float sin_theta = 0, cos_theta = 0;
+
+	//if (a > 0)
+	//	seq = 1;
+	//if (b > 0)
+	//	seq = 2;
+
+	//switch (seq)
+	//{
+	//case 0:
+	//{
+	//	return ;
+	//}break;
+	//case 1:
+	//{
+	//	cos_theta = cos(a);
+	//	sin_theta = sin(a);
+
+	//	// set the matrix up 
+	//	Mat_Init_4X4(mt, 1, 0, 0, 0,
+	//		0, cos_theta, sin_theta, 0,
+	//		0, -sin_theta, cos_theta, 0,
+	//		0, 0, 0, 1);
+
+	//	return;
+	//}break;
+	//case 2:
+	//{
+	//	cos_theta = cos(b);
+	//	sin_theta = -sin(b);
+
+	//	// set the matrix up 
+	//	Mat_Init_4X4(mt, cos_theta, 0, -sin_theta, 0,
+	//		0, 1, 0, 0,
+	//		sin_theta, 0, cos_theta, 0,
+	//		0, 0, 0, 1);
+
+	//}break;
+	//default: break;
+	//}
+
+	a = DEG_TO_RAD(a);
+	b = DEG_TO_RAD(b);
+	c = DEG_TO_RAD(c);
+
+	float cos_theta = cos(a);
+	float sin_theta = sin(a);
+
+	//构建x轴的旋转矩阵
+	Mat_Init_4X4(&mx, 1, 0, 0, 0,
+		0, cos_theta, sin_theta, 0,
+		0, -sin_theta, cos_theta, 0,
+		0, 0, 0, 1);
+
+	cos_theta = cos(b);
+	sin_theta = sin(b);
+
+	Mat_Init_4X4(&my, cos_theta, 0, -sin_theta, 0,
+		0, 1, 0, 0,
+		sin_theta, 0, cos_theta, 0,
+		0, 0, 0, 1);
+
+	cos_theta = cos(c);
+	sin_theta = sin(c);
+
+	Mat_Init_4X4(&mz, cos_theta, sin_theta, 0, 0,
+		-sin_theta, cos_theta, 0, 0,
+		0, 0, 1, 0,
+		0, 0, 0, 1);
+
+	Mat_Mul_4X4(&mz, &my, &mtmp);
+	Mat_Mul_4X4(&mtmp, &mx, mt);
+
+}
+
+void Transform_OBJECT(OBJECT_PTR obj, MATRIX4X4_PTR mt, int coord_select)
+{
+	switch (coord_select)
+	{
+		case TRANSFORM_LOCAL_ONLY:
+		{
+			for (int vertex = 0; vertex < obj->num_vertices; vertex++)
+			{
+				POINT4D presult;
+				Mat_Mul_VECTOR4D_4X4(&obj->vlist_local[vertex], mt, &presult);
+
+				Vector4D_Copy(&obj->vlist_local[vertex], &presult);
+			}
+		}break;
+		case TRANSFORM_LOCAL_TO_TRANS:
+		{
+			for (int vertex = 0; vertex < obj->num_vertices; vertex++)
+			{
+				POINT4D presult;
+				Mat_Mul_VECTOR4D_4X4(&obj->vlist_local[vertex], mt, &obj->vlist_trans[vertex]);
+
+			}
+		}break;
+		case TRANSFORM_TRANS_ONLY:
+		{
+			for (int vertex = 0; vertex < obj->num_vertices; vertex++)
+			{
+				POINT4D presult;
+				Mat_Mul_VECTOR4D_4X4(&obj->vlist_trans[vertex], mt, &presult);
+
+				Vector4D_Copy(&obj->vlist_trans[vertex], &presult);
+			}
+		}break;
+		default: break;
+	}
+}
+
 
 
 

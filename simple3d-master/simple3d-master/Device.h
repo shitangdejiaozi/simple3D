@@ -6,12 +6,20 @@
 #define RENDER_STATE_COLOR      4
 
 #define RENDERLIST_MAX_POLYS 32768
+#define OBJECT_MAX_VERTICES           1024  // 
+#define OBJECT_MAX_POLYS              1024 // 
+
 #define POLY_STATE_ACTIVE             0x0001
 #define POLY_STATE_CLIPPED            0x0002
 #define POLY_STATE_BACKFACE           0x0004
 
+#define OBJECT_STATE_ACTIVE           0x0001
+#define OBJECT_STATE_VISIBLE          0x0002 
+#define OBJECT_STATE_CULLED           0x0004
+
 #define TRANSFORM_TRANS_ONLY 0
 #define TRANSFORM_LOCAL_TO_TRANS 1
+#define TRANSFORM_LOCAL_ONLY 2
 
 #define RGB32BIT(a,r,g,b) ((b) + ((g) << 8) + ((r) << 16) + ((a) << 24))
 
@@ -92,6 +100,24 @@ typedef struct POLYF_TYP
 	POINT4D tvlist[3]; //变换后的顶点
 }POLYF, *POLYF_PTR;
 
+//物体结构
+typedef struct OBJECT_TYP
+{
+	int id;
+	char name[100];
+	int state;
+	int attr;
+	int max_radius; //最大半径，用于物体剔除
+	POINT4D world_pos;
+	VECTOR4D dir; //局部坐标系中轴的旋转角度
+	int num_vertices; //顶点数
+	POINT4D vlist_local[OBJECT_MAX_VERTICES]; //顶点数组
+	POINT4D vlist_trans[OBJECT_MAX_VERTICES];
+
+	int num_polys;
+	POLY plist[OBJECT_MAX_VERTICES];
+}OBJECT, *OBJECT_PTR;
+
 //多边形列表，
 typedef struct RENDERLIST_TYP
 {
@@ -115,8 +141,11 @@ void Device_Draw_Line(device_PTR device, int x0, int y0, int x1, int y1, IUINT32
 
 void Reset_RENDERLIST(RENDERLIST_PTR  render_list);
 int Insert_POLYF_RENDERLIST(RENDERLIST_PTR render_list, POLYF_PTR poly);
+int Insert_POLY_RENDERLIST(RENDERLIST_PTR render_list, POLY_PTR poly);
+int Insert_OBJECT_RENDERLIST(RENDERLIST_PTR render_list, OBJECT_PTR obj, bool insert_local);
 void Transform_RENDERLIST(RENDERLIST_PTR render_list, MATRIX4X4_PTR mt, int coord_select);
 
+void Transform_OBJECT(OBJECT_PTR obj, MATRIX4X4_PTR mt, int coord_select);
 void Init_Camera(CAMERA_PTR cam, int cam_attr, POINT4D_PTR cam_pos, VECTOR4D_PTR cam_dir, POINT4D_PTR cam_target, float near_clip_z, float far_clip_z, float fov, float  viewport_width, float viewport_height, bool isNormalize);
 
 //坐标变换
@@ -131,6 +160,7 @@ void Camera_To_Perspective_Renderlist(RENDERLIST_PTR render_list, CAMERA_PTR cam
 void Perspective_To_Screen_Renderlist(RENDERLIST_PTR render_list, CAMERA_PTR cam);
 void Camera_To_Screen_Renderlist(RENDERLIST_PTR render_list, CAMERA_PTR cam);
 
+void Build_XYZ_Rotation_Matrix(float a, float b, float c, MATRIX4X4_PTR mt);
 void Draw_Renderlist_Wire(RENDERLIST_PTR render_list, device_PTR device);
 #endif // DEVICE
 
