@@ -137,9 +137,13 @@ typedef struct RENDERLIST_TYP
 void Device_Init(device_PTR device, int width, int height, IUINT32 color, IUINT32 * framebuffer, float * zbuffer, int render_state);
 void Device_Set_RenderState(device_PTR device, int reander_state);
 void Device_Clear(device_PTR device);
+
 //基本的渲染函数
 void Device_Draw_Pixel(device_PTR device, int x, int y, IUINT32 color);
 void Device_Draw_Line(device_PTR device, int x0, int y0, int x1, int y1, IUINT32 color);
+void Device_Draw_Triangle(device_PTR device, int x1, int y1, int x2, int y2, int x3, int y3, IUINT32 color);
+void Device_Draw_Top_Tri(device_PTR device, int x1, int y1, int x2, int y2, int x3, int y3, IUINT32 color);
+void Device_Draw_Bottom_Tri(device_PTR device, int x1, int y1, int x2, int y2, int x3, int y3, IUINT32 color);
 
 //renderlist
 void Reset_RENDERLIST(RENDERLIST_PTR  render_list);
@@ -169,6 +173,7 @@ void Camera_To_Screen_Renderlist(RENDERLIST_PTR render_list, CAMERA_PTR cam);
 
 void Build_XYZ_Rotation_Matrix(float a, float b, float c, MATRIX4X4_PTR mt);
 void Draw_Renderlist_Wire(RENDERLIST_PTR render_list, device_PTR device);
+void Draw_Renderlist_Solid(RENDERLIST_PTR render_list, device_PTR device);
 #endif // DEVICE
 
 

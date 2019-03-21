@@ -59,7 +59,7 @@ void GameInit()
 	{
 		cube.plist[tri].state = POLY_STATE_ACTIVE;
 		cube.plist[tri].attr = 0;
-		cube.plist[tri].color = 0;
+		cube.plist[tri].color = RGB32BIT(0, 0, 255, 255);
 		cube.plist[tri].vertex_list = cube.vlist_local;
 		
 		cube.plist[tri].vert[0] = temp_poly_indices[tri * 3 + 0];
@@ -168,8 +168,8 @@ int main(int argc, char *argv[])
 
 		}
 
-
-		Draw_Renderlist_Wire(&rend_list, &device);
+		Draw_Renderlist_Solid(&rend_list, &device);
+		//Draw_Renderlist_Wire(&rend_list, &device);
 
 		//¸ù¾ÝframebufferÌî³ärendercolor
 		for (int y = 0; y < SCREEN_HEIGHT; y++)

@@ -87,6 +87,115 @@ void Device_Draw_Line(device_PTR device, int x0, int y0, int x1, int y1, IUINT32
 	}
 }
 
+//光栅化普通的三角形，对三角形进行划分，分为平底和平顶两个三角形
+void Device_Draw_Triangle(device_PTR device, int x1, int y1, int x2, int y2, int x3, int y3, IUINT32 color)
+{
+	int temp_x, temp_y;
+
+	if ((x1 == x2 && x2 == x3) || (y1 == y2 && y2 == y3))
+		return;
+
+	if (y1 > y2)
+	{
+		temp_x = x1;
+		temp_y = y1;
+		x1 = x2;
+		y1 = y2;
+		x2 = temp_x;
+		y2 = temp_y;
+	}
+
+	if (y1 > y3)
+	{
+		temp_x = x1;
+		temp_y = y1;
+		x1 = x3;
+		y1 = y3;
+		x3 = temp_x;
+		y3 = temp_y;
+	}
+
+	if (y2 > y3)
+	{
+		temp_x = x2;
+		temp_y = y2;
+		x2 = x3;
+		y2 = y3;
+		x3 = temp_x;
+		y3 = temp_y;
+	}
+
+	if (y1 == y2)
+	{
+		Device_Draw_Top_Tri(device, x1, y1, x2, y2, x3, y3, color);
+	}
+	else if (y2 == y3)
+	{
+		Device_Draw_Bottom_Tri(device, x1, y1, x2, y2, x3, y3, color);
+
+	}
+	else
+	{
+		int new_x = x1 + (int)((float)(x3 - x1) / (float)(y3 - y1) * (float)(y2 - y1) + 0.5);
+		Device_Draw_Bottom_Tri(device, x1, y1, x2, y2, new_x, y2, color);
+		Device_Draw_Top_Tri(device, x2, y2, new_x, y2, x3, y3, color);
+	}
+
+}
+
+//光栅化平顶三角形
+void Device_Draw_Top_Tri(device_PTR device, int x1, int y1, int x2, int y2, int x3, int y3, IUINT32 color)
+{
+	float dx_left, dx_right, xl, xr, height;
+	int temp_x;
+
+	if (x2 < x1)
+	{
+		temp_x = x2;
+		x2 = x1;
+		x1 = temp_x;
+	}
+	height = y3 - y1;
+	dx_left = (x3 - x1) / height;
+	dx_right = (x3 - x2) / height;
+
+	xl = (float)x1;
+	xr = (float)x2 + (float) 0.5; //为了保证顶点在转int的时候不会丢弃信息。
+
+	for (int y = y1; y < y3; y++)
+	{
+		Device_Draw_Line(device, xl, y, xr, y, color);
+		xl += dx_left;
+		xr += dx_right;
+	}
+}
+
+//光栅化平底三角形
+void Device_Draw_Bottom_Tri(device_PTR device, int x1, int y1, int x2, int y2, int x3, int y3, IUINT32 color)
+{
+	float dx_left, dx_right, xl, xr, height;
+	int temp_x;
+	if (x3 < x2)
+	{
+		temp_x = x3;
+		x3 = x2;
+		x2 = temp_x;
+	}
+	height = y3 - y1;
+	dx_left = (x2 - x1) / height;
+	dx_right = (x3 - x1) / height;
+
+	xl = xr = (float)x1;
+
+	for (int y = y1; y <= y3; y++)
+	{
+		Device_Draw_Line(device, xl, y, xr, y, color);
+		xl += dx_left;
+		xr += dx_right;
+	}
+
+}
+
 void Reset_RENDERLIST(RENDERLIST_PTR  render_list)
 {
 	render_list->num_polys = 0;
@@ -472,6 +581,7 @@ void Camera_To_Screen_Renderlist(RENDERLIST_PTR render_list, CAMERA_PTR cam)
 	}
 }
 
+//渲染线框模式
 void Draw_Renderlist_Wire(RENDERLIST_PTR render_list, device_PTR device)
 {
 	for (int poly = 0; poly < render_list->num_polys; poly++)
@@ -485,6 +595,21 @@ void Draw_Renderlist_Wire(RENDERLIST_PTR render_list, device_PTR device)
 		Device_Draw_Line(device, curr_poly->tvlist[1].x, curr_poly->tvlist[1].y, curr_poly->tvlist[2].x, curr_poly->tvlist[2].y, curr_poly->color);
 		Device_Draw_Line(device, curr_poly->tvlist[2].x, curr_poly->tvlist[2].y, curr_poly->tvlist[0].x, curr_poly->tvlist[0].y, curr_poly->color);
 
+
+	}
+}
+
+//渲染实体
+void Draw_Renderlist_Solid(RENDERLIST_PTR render_list, device_PTR device)
+{
+	for (int poly = 0; poly < render_list->num_polys; poly++)
+	{
+		POLYF_PTR curr_poly = render_list->poly_ptrs[poly];
+		if (curr_poly == NULL || !(curr_poly->state & POLY_STATE_ACTIVE) || curr_poly->state & POLY_STATE_CLIPPED || curr_poly->state & POLY_STATE_BACKFACE)
+			continue;
+
+		//绘制三角形
+		Device_Draw_Triangle(device, curr_poly->tvlist[0].x, curr_poly->tvlist[0].y, curr_poly->tvlist[1].x, curr_poly->tvlist[1].y, curr_poly->tvlist[2].x, curr_poly->tvlist[2].y, curr_poly->color);
 
 	}
 }
@@ -681,6 +806,7 @@ void Reset_OBJECT(OBJECT_PTR obj)
 		RESET_BIT(curr_poly->state, POLY_STATE_CLIPPED);
 	}
 }
+
 
 
 
