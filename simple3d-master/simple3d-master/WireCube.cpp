@@ -12,11 +12,11 @@ bool isViewdist_normalize = false;  //视距是否为1，视平面是否归一化
 bool isMergePs = true;   //是否合并透视和屏幕变换
 CAMERA camera;
 RENDERLIST rend_list;
-POINT4D cam_pos = { 0, 0, -100, 1 };
+POINT4D cam_pos = { 0, 0,0, 1 };
 VECTOR4D cam_dir = { 0, 0, 0, 1 };
 
 OBJECT cube;
-POINT3D cube_pos = { 0, 0, 0 };
+POINT3D cube_pos = { 0, 0, 100 };
 void GameInit()
 {
 	
@@ -50,7 +50,7 @@ void GameInit()
 		0, 1, 2, 0, 2, 3,
 		0, 7, 1, 0, 4, 7,
 		1, 7, 6, 1, 6, 2,
-		2, 6, 5, 2, 3, 5,
+		2, 6, 5, 3, 2, 5,
 		0, 5, 4, 0, 3, 5,
 		5, 6, 7, 4, 5, 7
 	};
@@ -128,17 +128,20 @@ int main(int argc, char *argv[])
 
 		//Device_Draw_Line(&device, 0, 0, 200, 200, 0x123457);
 		Reset_RENDERLIST(&rend_list);
+		Reset_OBJECT(&cube);
 
 		MATRIX4X4 rotation;
-		Build_XYZ_Rotation_Matrix(0, 10.0, 0, &rotation);
-		Transform_OBJECT(&cube, &rotation, TRANSFORM_LOCAL_ONLY);
+		Build_XYZ_Rotation_Matrix(0, 30.0, 0, &rotation);
+		Transform_OBJECT(&cube, &rotation, TRANSFORM_LOCAL_TO_TRANS);
 
-		Insert_OBJECT_RENDERLIST(&rend_list, &cube, true);
+		Insert_OBJECT_RENDERLIST(&rend_list, &cube, false);
 		cout << "model to world" << endl;
 		MATRIX4X4 mt;
 		Build_Model_To_World_Matrix4X4(&cube_pos, &mt);
-		Transform_RENDERLIST(&rend_list, &mt, TRANSFORM_LOCAL_TO_TRANS);
+		Transform_RENDERLIST(&rend_list, &mt, TRANSFORM_TRANS_ONLY);
 
+		//开启背面消除
+		Remove_Backface_RENDERLIST(&rend_list, &camera);
 		cout << "world to camera" << endl;
 		Build_World_To_Camera_Matrix_Euler(&camera);
 		Transform_RENDERLIST(&rend_list, &camera.view, TRANSFORM_TRANS_ONLY);

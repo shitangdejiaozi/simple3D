@@ -13,6 +13,8 @@
 #define POLY_STATE_CLIPPED            0x0002
 #define POLY_STATE_BACKFACE           0x0004
 
+#define POLY_ATTR_2SIDE               0x0001
+
 #define OBJECT_STATE_ACTIVE           0x0001
 #define OBJECT_STATE_VISIBLE          0x0002 
 #define OBJECT_STATE_CULLED           0x0004
@@ -22,7 +24,8 @@
 #define TRANSFORM_LOCAL_ONLY 2
 
 #define RGB32BIT(a,r,g,b) ((b) + ((g) << 8) + ((r) << 16) + ((a) << 24))
-
+#define SET_BIT(word,bit_flag)   ((word)=((word) | (bit_flag)))
+#define RESET_BIT(word,bit_flag) ((word)=((word) & (~bit_flag)))
 typedef struct
 {
 	MATRIX4X4 model; //局部到世界坐标变换
@@ -138,15 +141,19 @@ void Device_Clear(device_PTR device);
 void Device_Draw_Pixel(device_PTR device, int x, int y, IUINT32 color);
 void Device_Draw_Line(device_PTR device, int x0, int y0, int x1, int y1, IUINT32 color);
 
-
+//renderlist
 void Reset_RENDERLIST(RENDERLIST_PTR  render_list);
 int Insert_POLYF_RENDERLIST(RENDERLIST_PTR render_list, POLYF_PTR poly);
 int Insert_POLY_RENDERLIST(RENDERLIST_PTR render_list, POLY_PTR poly);
 int Insert_OBJECT_RENDERLIST(RENDERLIST_PTR render_list, OBJECT_PTR obj, bool insert_local);
 void Transform_RENDERLIST(RENDERLIST_PTR render_list, MATRIX4X4_PTR mt, int coord_select);
+void Remove_Backface_RENDERLIST(RENDERLIST_PTR render_list, CAMERA_PTR cam);
 
+//object
+void Reset_OBJECT(OBJECT_PTR obj);
 void Transform_OBJECT(OBJECT_PTR obj, MATRIX4X4_PTR mt, int coord_select);
 void Init_Camera(CAMERA_PTR cam, int cam_attr, POINT4D_PTR cam_pos, VECTOR4D_PTR cam_dir, POINT4D_PTR cam_target, float near_clip_z, float far_clip_z, float fov, float  viewport_width, float viewport_height, bool isNormalize);
+void Remove_Backface_OBJECT(OBJECT_PTR obj, CAMERA_PTR cam);
 
 //坐标变换
 void Build_Model_To_World_Matrix4X4(VECTOR3D_PTR vpos, MATRIX4X4_PTR mt);

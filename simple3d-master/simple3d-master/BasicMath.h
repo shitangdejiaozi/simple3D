@@ -65,6 +65,7 @@ void Vector4D_Init_XYZ(VECTOR4D_PTR vec, float x, float y, float z);
 void Vector4D_Init(VECTOR4D_PTR dst, VECTOR4D_PTR src);
 void Vector4D_Build(VECTOR4D_PTR src, VECTOR4D_PTR dst, VECTOR4D_PTR result);
 void Vector4D_Cross(VECTOR4D_PTR va, VECTOR4D_PTR vb, VECTOR4D_PTR result);
+float Vector4D_Dot(VECTOR4D_PTR va, VECTOR4D_PTR vb);
 void Vector4D_Normalize(VECTOR4D_PTR va);
 void Vector4D_Div_By_W(VECTOR4D_PTR va);
 #endif // !BASICMATH

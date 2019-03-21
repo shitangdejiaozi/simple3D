@@ -76,6 +76,7 @@ void Vector4D_Build(VECTOR4D_PTR src, VECTOR4D_PTR dst, VECTOR4D_PTR result)
 	result->w = 1;
 }
 
+//向量外积
 void Vector4D_Cross(VECTOR4D_PTR va, VECTOR4D_PTR vb, VECTOR4D_PTR result)
 {
 	result->x = ((va->y * vb->z) - (va->z * vb->y));
@@ -83,6 +84,12 @@ void Vector4D_Cross(VECTOR4D_PTR va, VECTOR4D_PTR vb, VECTOR4D_PTR result)
 	result->z = ((va->x * vb->y) - (va->y * vb->x));
 	result->w = 1;
 	
+}
+
+//向量内积
+float Vector4D_Dot(VECTOR4D_PTR va, VECTOR4D_PTR vb)
+{
+	return((va->x * vb->x) + (va->y * vb->y) + (va->z * vb->z));
 }
 
 void Vector4D_Normalize(VECTOR4D_PTR va)

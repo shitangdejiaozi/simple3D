@@ -608,7 +608,79 @@ void Transform_OBJECT(OBJECT_PTR obj, MATRIX4X4_PTR mt, int coord_select)
 	}
 }
 
+void Remove_Backface_RENDERLIST(RENDERLIST_PTR render_list, CAMERA_PTR cam)
+{
+	for (int poly = 0; poly < render_list->num_polys; poly++)
+	{
+		POLYF_PTR curr_poly = render_list->poly_ptrs[poly];
+		if (curr_poly == NULL || !(curr_poly->state & POLY_STATE_ACTIVE) || curr_poly->state & POLY_STATE_CLIPPED || curr_poly->state & POLY_STATE_BACKFACE ||curr_poly->attr & POLY_ATTR_2SIDE )
+			continue;
 
+		VECTOR4D u, v, n;
+		Vector4D_Build(&curr_poly->tvlist[0], &curr_poly->tvlist[1], &u);
+		Vector4D_Build(&curr_poly->tvlist[0], &curr_poly->tvlist[2], &v);
+
+		//计算法线
+		Vector4D_Cross(&u, &v, &n);
+
+		VECTOR4D view;
+		Vector4D_Build(&curr_poly->tvlist[0], &cam->pos, &view);
+
+		float dp = Vector4D_Dot(&n, &view);
+		if (dp <= 0.0)
+		{
+			SET_BIT(curr_poly->state, POLY_STATE_BACKFACE);
+		}
+	}
+}
+
+void Remove_Backface_OBJECT(OBJECT_PTR obj, CAMERA_PTR cam)
+{
+	//物体被剔除了
+	if (obj->state & OBJECT_STATE_CULLED)
+		return;
+
+	for (int poly = 0; poly < obj->num_polys; poly++)
+	{
+		POLY_PTR curr_poly = &obj->plist[poly];
+		if (curr_poly == NULL || !(curr_poly->state & POLY_STATE_ACTIVE) || curr_poly->state & POLY_STATE_CLIPPED || curr_poly->state & POLY_STATE_BACKFACE || curr_poly->attr & POLY_ATTR_2SIDE)
+			continue;
+		int vindex_0 = curr_poly->vert[0];
+		int vindex_1 = curr_poly->vert[1];
+		int vindex_2 = curr_poly->vert[2];
+
+		VECTOR4D u, v, n;
+		Vector4D_Build(&obj->vlist_trans[vindex_0], &obj->vlist_trans[vindex_1], &u);
+		Vector4D_Build(&obj->vlist_trans[vindex_0], &obj->vlist_trans[vindex_2], &v);
+
+		Vector4D_Cross(&u, &v, &n);
+
+		VECTOR4D view;
+		Vector4D_Build(&obj->vlist_trans[vindex_0], &cam->pos, &view);
+
+		float dp = Vector4D_Dot(&n, &view);
+		if (dp <= 0.0)
+		{
+			SET_BIT(curr_poly->state, POLY_STATE_BACKFACE);
+		}
+
+	}
+}
+
+void Reset_OBJECT(OBJECT_PTR obj)
+{
+	RESET_BIT(obj->state, OBJECT_STATE_CULLED);
+
+	for (int poly = 0; poly < obj->num_polys; poly++)
+	{
+		POLY_PTR curr_poly = &obj->plist[poly];
+		if (!(curr_poly->state & POLY_STATE_ACTIVE))
+			continue;
+
+		RESET_BIT(curr_poly->state, POLY_STATE_BACKFACE);
+		RESET_BIT(curr_poly->state, POLY_STATE_CLIPPED);
+	}
+}
 
 
 
