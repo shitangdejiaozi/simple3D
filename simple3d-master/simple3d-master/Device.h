@@ -13,6 +13,10 @@
 #define POLY_STATE_CLIPPED            0x0002
 #define POLY_STATE_BACKFACE           0x0004
 
+#define POLY_ATTR_SHADE_MODE_CONSTANT 0x0020 //固定着色
+#define POLY_ATTR_SHADE_MODE_FLAT     0x0040 //恒定着色
+#define POLY_ATTR_SHADE_MODE_GOURAUD  0x0080 
+
 #define POLY_ATTR_2SIDE               0x0001
 
 #define OBJECT_STATE_ACTIVE           0x0001
@@ -23,9 +27,19 @@
 #define TRANSFORM_LOCAL_TO_TRANS 1
 #define TRANSFORM_LOCAL_ONLY 2
 
-#define RGB32BIT(a,r,g,b) ((b) + ((g) << 8) + ((r) << 16) + ((a) << 24))
+#define LIGHT_ATTR_AMBIENT  0x0001  //环境光照
+#define LIGHT_ATTR_INFINITE 0x0002  //无穷远光
+#define LIGHT_ATTR_POINT    0x0003  //点光源
+
+#define LIGHT_STATE_ON    1        //光源打开
+#define LIGHT_STATE_OFF   0        //关闭
+#define MAX_LIGHTS        8       //最大光源数
+
+#define RGBABIT(r,g,b,a) ((a) + ((b) << 8) + ((g) << 16) + ((r) << 24))
+#define RGBAFROMINT(color, r, g, a){*r = ((0xff << 24 & color) >> 24); *g = ((0xff << 16 & color) >> 16); *b = (0xff << 8 & color) >> 8;}
 #define SET_BIT(word,bit_flag)   ((word)=((word) | (bit_flag)))
 #define RESET_BIT(word,bit_flag) ((word)=((word) & (~bit_flag)))
+
 typedef struct
 {
 	MATRIX4X4 model; //局部到世界坐标变换
@@ -88,6 +102,7 @@ typedef struct POLY_TYP
 	int state;
 	int attr;
 	int color;
+	int lightcolor;
 	POINT4D_PTR vertex_list;//顶点列表
 	int vert[3];            //顶点索引
 }POLY, *POLY_PTR;
@@ -133,6 +148,36 @@ typedef struct RENDERLIST_TYP
 
 }RENDERLIST, *RENDERLIST_PTR;
 
+//颜色格式
+typedef struct RGBA_TYP
+{
+	union
+	{
+		int rgba;
+		struct {
+			unsigned char a, b, g, r;
+		};
+	};
+}RGBA, *RGBA_PTR;
+
+typedef struct LIGHT_TYP
+{
+	int state;
+	int attr;
+	int id;
+
+	RGBA c_ambient; //环境光强度
+	RGBA c_diffuse; //散射光强度
+	RGBA c_specular; //镜面反射光强度
+	POINT4D pos;
+	VECTOR4D dir;
+	float kc, kl, kq; //点光源的衰减因子
+
+}LIGHT, *LIGHT_PTR;
+
+
+extern LIGHT lights[MAX_LIGHTS];  // lights in system
+extern int num_lights;              // current number of lights
 
 void Device_Init(device_PTR device, int width, int height, IUINT32 color, IUINT32 * framebuffer, float * zbuffer, int render_state);
 void Device_Set_RenderState(device_PTR device, int reander_state);
@@ -145,11 +190,12 @@ void Device_Draw_Triangle(device_PTR device, int x1, int y1, int x2, int y2, int
 void Device_Draw_Top_Tri(device_PTR device, int x1, int y1, int x2, int y2, int x3, int y3, IUINT32 color);
 void Device_Draw_Bottom_Tri(device_PTR device, int x1, int y1, int x2, int y2, int x3, int y3, IUINT32 color);
 
+void GetRGBFromInt(int color, int *r, int *g, int *b);
 //renderlist
 void Reset_RENDERLIST(RENDERLIST_PTR  render_list);
 int Insert_POLYF_RENDERLIST(RENDERLIST_PTR render_list, POLYF_PTR poly);
-int Insert_POLY_RENDERLIST(RENDERLIST_PTR render_list, POLY_PTR poly);
-int Insert_OBJECT_RENDERLIST(RENDERLIST_PTR render_list, OBJECT_PTR obj, bool insert_local);
+int Insert_POLY_RENDERLIST(RENDERLIST_PTR render_list, POLY_PTR poly, bool lighting = false);
+int Insert_OBJECT_RENDERLIST(RENDERLIST_PTR render_list, OBJECT_PTR obj, bool insert_local, bool lighting = false);
 void Transform_RENDERLIST(RENDERLIST_PTR render_list, MATRIX4X4_PTR mt, int coord_select);
 void Remove_Backface_RENDERLIST(RENDERLIST_PTR render_list, CAMERA_PTR cam);
 
@@ -174,6 +220,21 @@ void Camera_To_Screen_Renderlist(RENDERLIST_PTR render_list, CAMERA_PTR cam);
 void Build_XYZ_Rotation_Matrix(float a, float b, float c, MATRIX4X4_PTR mt);
 void Draw_Renderlist_Wire(RENDERLIST_PTR render_list, device_PTR device);
 void Draw_Renderlist_Solid(RENDERLIST_PTR render_list, device_PTR device);
+
+//Light
+void Reset_Lights_LIGHT();
+int Init_Light_LIGHT(
+	int index,
+	int _state,
+	int _attr,
+	RGBA ambient, //环境光强度
+	RGBA diffuse,
+	RGBA specular,
+	POINT4D_PTR pos, //光源位置
+	VECTOR4D_PTR dir, //光源方向
+	float kc, float kl, float kq
+);
+int Light_Object_World(OBJECT_PTR obj, CAMERA_PTR cam, LIGHT_PTR lights, int max_lights);
 #endif // DEVICE
 
 

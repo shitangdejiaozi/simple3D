@@ -5,6 +5,10 @@
 #include "Device.h"
 using namespace std;
 
+LIGHT lights[MAX_LIGHTS];
+int num_lights;
+
+
 void Device_Init(device_PTR device, int width, int height, IUINT32 color, IUINT32 * framebuffer, float * zbuffer, int render_state)
 {
 	device->width = width;
@@ -214,7 +218,7 @@ int Insert_POLYF_RENDERLIST(RENDERLIST_PTR render_list, POLYF_PTR poly)
 	return 1;
 }
 
-int Insert_POLY_RENDERLIST(RENDERLIST_PTR render_list, POLY_PTR poly)
+int Insert_POLY_RENDERLIST(RENDERLIST_PTR render_list, POLY_PTR poly, bool lighting)
 {
 	if (render_list->num_polys == RENDERLIST_MAX_POLYS)
 		return 0;
@@ -224,7 +228,10 @@ int Insert_POLY_RENDERLIST(RENDERLIST_PTR render_list, POLY_PTR poly)
 
 	render_list->poly_data[num].state = poly->state;
 	render_list->poly_data[num].attr = poly->attr;
-	render_list->poly_data[num].color = poly->color;
+	if (!lighting)
+		render_list->poly_data[num].color = poly->color;
+	else
+		render_list->poly_data[num].color = poly->lightcolor;
 
 	Vector4D_Copy(&render_list->poly_data[num].tvlist[0], &poly->vertex_list[poly->vert[0]]);
 	Vector4D_Copy(&render_list->poly_data[num].tvlist[1], &poly->vertex_list[poly->vert[1]]);
@@ -239,7 +246,7 @@ int Insert_POLY_RENDERLIST(RENDERLIST_PTR render_list, POLY_PTR poly)
 }
 
 //物体插入到渲染列表
-int Insert_OBJECT_RENDERLIST(RENDERLIST_PTR render_list, OBJECT_PTR obj, bool insert_local)
+int Insert_OBJECT_RENDERLIST(RENDERLIST_PTR render_list, OBJECT_PTR obj, bool insert_local, bool lighting)
 {
 	if (!(obj->state & OBJECT_STATE_ACTIVE) ||
 		(obj->state & OBJECT_STATE_CULLED) ||
@@ -265,13 +272,14 @@ int Insert_OBJECT_RENDERLIST(RENDERLIST_PTR render_list, OBJECT_PTR obj, bool in
 			curr_poly->vertex_list = obj->vlist_trans; //多边形的顶点列表是变换后的
 		}
 
-		Insert_POLY_RENDERLIST(render_list, curr_poly);
+		Insert_POLY_RENDERLIST(render_list, curr_poly,lighting);
 
 		curr_poly->vertex_list = vlist_old;
 
 	}
 	return 1;
 }
+
 
 void PrintPoint(POINT4D point)
 {
@@ -806,6 +814,158 @@ void Reset_OBJECT(OBJECT_PTR obj)
 		RESET_BIT(curr_poly->state, POLY_STATE_CLIPPED);
 	}
 }
+
+//重置光源数组 
+void Reset_Lights_LIGHT()
+{
+	memset(lights, 0, MAX_LIGHTS * sizeof(LIGHT));
+	num_lights = 0;
+}
+
+//初始化光源,不处理聚光灯
+int Init_Light_LIGHT(
+	int index,
+	int _state,
+	int _attr,
+	RGBA ambient,
+	RGBA diffuse,
+	RGBA specular,
+	POINT4D_PTR pos,
+	VECTOR4D_PTR dir,
+	float kc, float kl, float kq
+)
+{
+	lights[index].attr = _attr;
+	lights[index].state = _state;
+	lights[index].c_ambient = ambient;
+	lights[index].c_diffuse = diffuse;
+	lights[index].c_specular = specular;
+	lights[index].kc = kc;
+	lights[index].kl = kl;
+	lights[index].kq = kq;
+
+	if (pos)
+		Vector4D_Copy(&lights[index].pos, pos);
+
+	if (dir)
+	{
+		Vector4D_Copy(&lights[index].dir, dir);
+		Vector4D_Normalize(&lights[index].dir);
+	}
+	return index;
+}
+
+//根据光源列表对物体 进行光照计算
+int Light_Object_World(OBJECT_PTR obj, CAMERA_PTR cam, LIGHT_PTR lights, int max_lights)
+{
+	int r_base, g_base, b_base;
+	int r_sum, g_sum, b_sum;
+	float dp, atten, dist, i;
+
+	if (!(obj->state & OBJECT_STATE_ACTIVE) ||
+		(obj->state & OBJECT_STATE_CULLED) ||
+		!(obj->state & OBJECT_STATE_VISIBLE))
+		return(0);
+
+	for (int poly = 0;poly < obj->num_polys; poly++)
+	{
+		POLY_PTR curr_poly = &obj->plist[poly];
+		if (curr_poly == NULL || !(curr_poly->state & POLY_STATE_ACTIVE) || curr_poly->state & POLY_STATE_CLIPPED || curr_poly->state & POLY_STATE_BACKFACE )
+			continue;
+		if (curr_poly->attr & POLY_ATTR_SHADE_MODE_FLAT || curr_poly->attr & POLY_ATTR_SHADE_MODE_GOURAUD)
+		{
+			int vindex_0 = curr_poly->vert[0];
+			int vindex_1 = curr_poly->vert[1];
+			int vindex_2 = curr_poly->vert[2]; //顶点索引
+
+			GetRGBFromInt(curr_poly->color, &r_base, &g_base, &b_base);
+
+			r_sum = g_sum = b_sum = 0; //初始化总体光照颜色
+
+			for (int curr_light = 0; curr_light < max_lights; curr_light++)
+			{
+				if (!lights[curr_light].state)
+					continue;
+
+				//环境光
+				if (lights[curr_light].attr & LIGHT_ATTR_AMBIENT)
+				{
+					r_sum += ((lights[curr_light].c_ambient.r * r_base) / 256);
+					g_sum += ((lights[curr_light].c_ambient.g * g_base) / 256);
+					b_sum += ((lights[curr_light].c_ambient.b * b_base) / 256);
+
+				}
+				else if (lights[curr_light].attr & LIGHT_ATTR_INFINITE)
+				{
+					//先计算面法线
+					VECTOR4D u, v, n;
+					Vector4D_Build(&obj->vlist_trans[vindex_0], &obj->vlist_trans[vindex_1], &u);
+					Vector4D_Build(&obj->vlist_trans[vindex_0], &obj->vlist_trans[vindex_2], &v);
+
+					Vector4D_Cross(&u, &v, &n);
+					Vector4D_Normalize(&n);
+
+					dp = Vector4D_Dot(&n, &lights[curr_light].dir); //计算 n.l
+
+					if (dp > 0)
+					{
+						//计算漫反射效果
+						r_sum += (lights[curr_light].c_diffuse.r * r_base * dp) / 256;
+						g_sum += (lights[curr_light].c_diffuse.g * g_base * dp) / 256;
+						b_sum += (lights[curr_light].c_diffuse.b * b_base * dp) / 256;
+
+					}
+				}
+				else if (lights[curr_light].attr & LIGHT_ATTR_POINT)
+				{
+					VECTOR4D u, v, n, l;
+					Vector4D_Build(&obj->vlist_trans[vindex_0], &obj->vlist_trans[vindex_1], &u);
+					Vector4D_Build(&obj->vlist_trans[vindex_0], &obj->vlist_trans[vindex_2], &v);
+
+					Vector4D_Cross(&u, &v, &n);
+
+					Vector4D_Build(&obj->vlist_trans[vindex_0], &lights[curr_light].pos, &l);
+					dist = Vector4D_Length(&l);
+					Vector4D_Normalize(&l);
+
+					dp = Vector4D_Dot(&n, &l);
+					if (dp > 0)
+					{
+						atten = lights[curr_light].kc + lights[curr_light].kl * dist + lights[curr_light].kq * dist * dist;
+						i = dp / atten;
+
+						r_sum += (lights[curr_light].c_diffuse.r * r_base * i) / 256;
+						g_sum += (lights[curr_light].c_diffuse.g * g_base * i) / 256;
+						b_sum += (lights[curr_light].c_diffuse.b * b_base * i) / 256;
+					}
+				}
+				if (r_sum > 255) r_sum = 255;
+				if (g_sum > 255) g_sum = 255;
+				if (b_sum > 255) b_sum = 255;
+
+				curr_poly->lightcolor = RGBABIT(r_sum, g_sum, b_sum, 0);
+			}
+		}
+		else
+		{
+			//固定着色
+			curr_poly->lightcolor = curr_poly->color;
+		}
+	}
+}
+
+void GetRGBFromInt(int color, int *r, int *g, int *b)
+{
+	int a = (0xff << 24 & color) >> 24;
+	int c = (0xff << 16 & color) >> 16;
+	int d = (0xff << 8 & color) >> 8;
+	*r = a;
+	*g = c;
+	*b = d;
+	
+}
+
+
 
 
 

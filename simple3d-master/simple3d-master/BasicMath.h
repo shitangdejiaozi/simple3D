@@ -68,5 +68,6 @@ void Vector4D_Cross(VECTOR4D_PTR va, VECTOR4D_PTR vb, VECTOR4D_PTR result);
 float Vector4D_Dot(VECTOR4D_PTR va, VECTOR4D_PTR vb);
 void Vector4D_Normalize(VECTOR4D_PTR va);
 void Vector4D_Div_By_W(VECTOR4D_PTR va);
+float Vector4D_Length(VECTOR4D_PTR va);
 #endif // !BASICMATH
 

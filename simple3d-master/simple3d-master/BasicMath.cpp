@@ -112,3 +112,8 @@ void Vector4D_Div_By_W(VECTOR4D_PTR va)
 	va->z = va->z / va->w;
 	va->w = 1;
 }
+
+float Vector4D_Length(VECTOR4D_PTR va)
+{
+	return(sqrtf(va->x*va->x + va->y*va->y + va->z*va->z));
+}

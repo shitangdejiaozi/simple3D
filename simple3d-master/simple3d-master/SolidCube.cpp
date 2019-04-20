@@ -19,11 +19,11 @@
 //POINT3D cube_pos = { 0, 0, 100 };
 //void GameInit()
 //{
-//	
+//
 //	cube.id = 0;
 //	cube.state = OBJECT_STATE_ACTIVE | OBJECT_STATE_VISIBLE;
 //	cube.attr = 0;
-//	cube.world_pos = { 0, 0, 0, 1};
+//	cube.world_pos = { 0, 0, 0, 1 };
 //	cube.num_vertices = 8;
 //
 //	POINT3D temp_verts[8] =
@@ -59,9 +59,9 @@
 //	{
 //		cube.plist[tri].state = POLY_STATE_ACTIVE;
 //		cube.plist[tri].attr = 0;
-//		cube.plist[tri].color = RGB32BIT(0, 0, 255, 255);
+//		cube.plist[tri].color = RGBABIT(0, 255, 255, 0);
 //		cube.plist[tri].vertex_list = cube.vlist_local;
-//		
+//
 //		cube.plist[tri].vert[0] = temp_poly_indices[tri * 3 + 0];
 //		cube.plist[tri].vert[1] = temp_poly_indices[tri * 3 + 1];
 //		cube.plist[tri].vert[2] = temp_poly_indices[tri * 3 + 2];
@@ -142,6 +142,7 @@
 //
 //		//开启背面消除
 //		Remove_Backface_RENDERLIST(&rend_list, &camera);
+//
 //		cout << "world to camera" << endl;
 //		Build_World_To_Camera_Matrix_Euler(&camera);
 //		Transform_RENDERLIST(&rend_list, &camera.view, TRANSFORM_TRANS_ONLY);
@@ -168,16 +169,16 @@
 //
 //		}
 //
-//		//Draw_Renderlist_Solid(&rend_list, &device);
-//		Draw_Renderlist_Wire(&rend_list, &device);
+//		Draw_Renderlist_Solid(&rend_list, &device);
+//		//Draw_Renderlist_Wire(&rend_list, &device);
 //
 //		//根据framebuffer填充rendercolor
 //		for (int y = 0; y < SCREEN_HEIGHT; y++)
 //		{
 //			for (int x = 0; x < SCREEN_WIDHT; x++)
 //			{
-//				IUINT32 color = framebuffer[y * SCREEN_WIDHT + x];//color采用a.8.8.8格式
-//				SDL_SetRenderDrawColor(Renderer, (0xff << 16 & color) >> 16, (0xff << 8 & color) >> 8, 0xff & color, (0xff << 24 & color) >> 24);
+//				IUINT32 color = framebuffer[y * SCREEN_WIDHT + x];//color采用8.8.8.a格式
+//				SDL_SetRenderDrawColor(Renderer, (0xff << 24 & color) >> 24,(0xff << 16 & color) >> 16, (0xff << 8 & color) >> 8, 0xff & color);
 //				SDL_RenderDrawPoint(Renderer, x, y);
 //				//SDL_RenderDrawLine(Renderer, 0, 0, 200, 200);
 //			}
