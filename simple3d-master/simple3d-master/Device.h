@@ -235,6 +235,7 @@ int Init_Light_LIGHT(
 	float kc, float kl, float kq
 );
 int Light_Object_World(OBJECT_PTR obj, CAMERA_PTR cam, LIGHT_PTR lights, int max_lights);
+
 #endif // DEVICE
 
 

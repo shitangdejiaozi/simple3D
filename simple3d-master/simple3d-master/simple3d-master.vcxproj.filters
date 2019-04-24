@@ -36,12 +36,18 @@
     <ClCompile Include="SolidCube_flat.cpp">
       <Filter>源文件\Sample</Filter>
     </ClCompile>
+    <ClCompile Include="SolidCubeModel.cpp">
+      <Filter>源文件\Sample</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Device.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="BasicMath.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="LoadModel.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

@@ -125,6 +125,7 @@
     <ClCompile Include="BasicMath.cpp" />
     <ClCompile Include="Device.cpp" />
     <ClCompile Include="SolidCube.cpp" />
+    <ClCompile Include="SolidCubeModel.cpp" />
     <ClCompile Include="SolidCube_flat.cpp" />
     <ClCompile Include="WirePoly.cpp" />
     <ClCompile Include="WireCube.cpp" />
@@ -132,6 +133,7 @@
   <ItemGroup>
     <ClInclude Include="BasicMath.h" />
     <ClInclude Include="Device.h" />
+    <ClInclude Include="LoadModel.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

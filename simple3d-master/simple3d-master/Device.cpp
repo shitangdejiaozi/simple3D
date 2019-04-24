@@ -3,6 +3,7 @@
 #include <iostream>
 #include "BasicMath.h"
 #include "Device.h"
+
 using namespace std;
 
 LIGHT lights[MAX_LIGHTS];
@@ -301,10 +302,10 @@ void Transform_RENDERLIST(RENDERLIST_PTR render_list, MATRIX4X4_PTR mt, int coor
 			for (int vertex = 0; vertex < 3; vertex++)
 			{
 				Mat_Mul_VECTOR4D_4X4(&curr_poly->vlist[vertex], mt, &curr_poly->tvlist[vertex]);
-				cout << "cur poly" << vertex << "vlist:" << endl;
+				/*cout << "cur poly" << vertex << "vlist:" << endl;
 				PrintPoint(curr_poly->vlist[vertex]);
 				cout << " change : " << endl;
-				PrintPoint(curr_poly->tvlist[vertex]);
+				PrintPoint(curr_poly->tvlist[vertex]);*/
 			}
 		}
 	}
@@ -322,10 +323,10 @@ void Transform_RENDERLIST(RENDERLIST_PTR render_list, MATRIX4X4_PTR mt, int coor
 				POINT4D presult;
 				Mat_Mul_VECTOR4D_4X4(&curr_poly->tvlist[vertex], mt, &presult);
 				Vector4D_Copy(&curr_poly->tvlist[vertex], &presult);
-				cout << "cur poly" << vertex << "vlist:" << endl;
+				/*cout << "cur poly" << vertex << "vlist:" << endl;
 				PrintPoint(curr_poly->vlist[vertex]);
 				cout << " change : " << endl;
-				PrintPoint(curr_poly->tvlist[vertex]);
+				PrintPoint(curr_poly->tvlist[vertex]);*/
 			}
 		}
 	}

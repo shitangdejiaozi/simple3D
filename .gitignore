@@ -13,4 +13,7 @@ simple3d-master.tlog/
 *.log
 
 # Object files
-*.obj
+
+
+# Build results
+[Dd]ebug/
